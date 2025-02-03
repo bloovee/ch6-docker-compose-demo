@@ -1,0 +1,48 @@
+services:
+  web:
+    build: ./django
+    container_name: django_app
+    expose:
+      - "8000"  # No need to expose externally; Nginx will handle requests
+    depends_on:
+      - db
+    env_file:
+      - .env
+    environment:
+      - DEBUG=True
+      - DB_NAME=postgres
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - DB_HOST=db
+      - DB_PORT=5432
+    volumes:
+      - ./django:/app
+      - ./staticfiles:/app/staticfiles  # Static files for Nginx to serve
+
+  db:
+    image: postgres:13
+    container_name: postgres_db
+    restart: always
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=postgres
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  nginx:
+    image: nginx:latest
+    container_name: nginx
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      - web
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro  # Load custom Nginx config
+      - ./staticfiles:/app/staticfiles  # Serve static files
+
+volumes:
+  postgres-data:
